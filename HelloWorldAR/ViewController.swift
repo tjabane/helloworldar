@@ -27,6 +27,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let scene = SCNScene(named: "art.scnassets/ship.scn")!
         
         // Set the scene to the view
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
         sceneView.scene = scene
     }
     
@@ -35,7 +36,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Create a session configuration
         let configuration = ARWorldTrackingConfiguration()
-
+        configuration.planeDetection = .horizontal;
         // Run the view's session
         sceneView.session.run(configuration)
     }
@@ -55,13 +56,38 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     // MARK: - ARSCNViewDelegate
     
 /*
-    // Override to create and configure nodes for anchors added to the view's session.
+     Override to create and configure nodes for anchors added to the view's session.
     func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
         let node = SCNNode()
-     
         return node
     }
 */
+    
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        
+        DispatchQueue.main.async {
+            if let planeAnchor = anchor as? ARPlaneAnchor {
+                self.addPlane(node: node, anchor: planeAnchor)
+            }
+        }
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+        
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        
+    }
+    
+    
+    
+    //Mark: private Methods
+    func addPlane(node: SCNNode, anchor: ARPlaneAnchor) {
+        let plane = Plane(anchor)
+        node.addChildNode(plane)
+    }
+    
     
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
