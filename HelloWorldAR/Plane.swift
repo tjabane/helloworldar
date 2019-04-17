@@ -12,12 +12,12 @@ import Foundation
 
 class Plane:SCNNode{
     
-    var planeAchor: ARPlaneAnchor
+    var planeAnchor: ARPlaneAnchor
     var planeGeometry: SCNPlane
     var planeNode: SCNNode
     
     init(_ anchor: ARPlaneAnchor) {
-        self.planeAchor = anchor;
+        self.planeAnchor = anchor;
         let grid = UIImage(named: "grid");
         
         self.planeGeometry = SCNPlane(width: CGFloat(anchor.extent.x), height: CGFloat(anchor.extent.z));
@@ -35,6 +35,15 @@ class Plane:SCNNode{
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    func update(_ anchor: ARPlaneAnchor) {
+        self.planeAnchor = anchor
+        self.planeGeometry.width = CGFloat(anchor.extent.x)
+        self.planeGeometry.height = CGFloat(anchor.extent.z)
+        self.position = SCNVector3Make(anchor.center.x, -0.002, anchor.center.z)
+    }
+    
+    
     
     
     

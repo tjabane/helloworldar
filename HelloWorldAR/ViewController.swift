@@ -11,7 +11,11 @@ import SceneKit
 import ARKit
 
 class ViewController: UIViewController, ARSCNViewDelegate {
-
+    var planes = [ARPlaneAnchor: Plane]()
+    
+    
+    
+    
     @IBOutlet var sceneView: ARSCNView!
     
     override func viewDidLoad() {
@@ -24,7 +28,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.showsStatistics = true
         
         // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        let scene = SCNScene()
         
         // Set the scene to the view
         sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
@@ -68,12 +72,18 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         DispatchQueue.main.async {
             if let planeAnchor = anchor as? ARPlaneAnchor {
                 self.addPlane(node: node, anchor: planeAnchor)
+                
             }
         }
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        
+        DispatchQueue.main.async {
+            if let planeAnchor = anchor as? ARPlaneAnchor {
+                self.updatePlane(anchor: planeAnchor)
+                
+            }
+        }
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
@@ -85,8 +95,51 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     //Mark: private Methods
     func addPlane(node: SCNNode, anchor: ARPlaneAnchor) {
         let plane = Plane(anchor)
+        planes[anchor] = plane
         node.addChildNode(plane)
     }
+    
+    func updatePlane(anchor: ARPlaneAnchor) {
+        if let plane = planes[anchor] {
+            plane.update(anchor)
+        }
+    }
+    
+    
+    func createTextNode (string: String) -> SCNNode {
+        let text = SCNText(string: string, extrusionDepth: 0.1);
+        text.font = UIFont.systemFont(ofSize: 1.0);
+        text.flatness = 0.01
+        text.firstMaterial?.diffuse.contents = UIColor.white;
+        
+        let textNode = SCNNode(geometry: text);
+        let fontSize = Float(0.04);
+        textNode.scale = SCNVector3(fontSize, fontSize, fontSize);
+        return textNode;
+    }
+    
+    func addText(string: String, parent: SCNNode){
+        let textNode = createTextNode(string: string);
+        textNode.position = SCNVector3Zero
+        parent.addChildNode(textNode);
+    }
+    
+    func registerGestureRecognizer(){
+        let tapGestureRecognizer  = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        self.sceneView.addGestureRecognizer(tapGestureRecognizer);
+    }
+    
+    @objc func tapped(recognizer: UITapGestureRecognizer){
+        let sceneView = recognizer.view as! ARSCNView;
+        let touchLocation = recognizer.location(in: sceneView);
+        let hitRTestRetsult = sceneView.hitTest(touchLocation, types: .existingPlaneUsingExtent);
+        if !hitRTestRetsult.isEmpty {
+            guard let hitResult = hitRTestRetsult.first else{
+                return
+            }
+        }
+    }
+    
     
     
     func session(_ session: ARSession, didFailWithError error: Error) {
