@@ -10,11 +10,11 @@ import UIKit
 import SceneKit
 import ARKit
 
+
 class ViewController: UIViewController, ARSCNViewDelegate {
     var planes = [ARPlaneAnchor: Plane]()
-    
-    
-    
+    var visibleGrid: Bool = true
+    let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
     
     @IBOutlet var sceneView: ARSCNView!
     
@@ -29,7 +29,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Create a new scene
         let scene = SCNScene()
-        
+        registerGestureRecognizer()
         // Set the scene to the view
         sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
         sceneView.scene = scene
@@ -52,26 +52,11 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
     }
     
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Release any cached data, images, etc that aren't in use.
-    }
-
-    // MARK: - ARSCNViewDelegate
-    
-/*
-     Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-        return node
-    }
-*/
-    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        
         DispatchQueue.main.async {
             if let planeAnchor = anchor as? ARPlaneAnchor {
                 self.addPlane(node: node, anchor: planeAnchor)
+                self.feedbackGenerator.impactOccurred()
                 
             }
         }
@@ -81,20 +66,14 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         DispatchQueue.main.async {
             if let planeAnchor = anchor as? ARPlaneAnchor {
                 self.updatePlane(anchor: planeAnchor)
-                
             }
         }
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
-        
-    }
-    
-    
-    
     //Mark: private Methods
     func addPlane(node: SCNNode, anchor: ARPlaneAnchor) {
         let plane = Plane(anchor)
+        plane.setPlaneVisibility(self.visibleGrid)
         planes[anchor] = plane
         node.addChildNode(plane)
     }
@@ -111,22 +90,44 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         text.font = UIFont.systemFont(ofSize: 1.0);
         text.flatness = 0.01
         text.firstMaterial?.diffuse.contents = UIColor.white;
-        
         let textNode = SCNNode(geometry: text);
         let fontSize = Float(0.04);
         textNode.scale = SCNVector3(fontSize, fontSize, fontSize);
+        var minVec = SCNVector3Zero;
+        var maxVec = SCNVector3Zero;
+        (minVec, maxVec) =  textNode.boundingBox
+        textNode.pivot = SCNMatrix4MakeTranslation(
+            minVec.x + (maxVec.x - minVec.x)/2,
+            minVec.y,
+            minVec.z + (maxVec.z - minVec.z)/2
+        )
         return textNode;
     }
     
-    func addText(string: String, parent: SCNNode){
-        let textNode = createTextNode(string: string);
-        textNode.position = SCNVector3Zero
-        parent.addChildNode(textNode);
+    func addText(_ hitResult: ARHitTestResult){
+        let textNode = createTextNode(string: "Dumela  Lefatshe");
+        textNode.position = SCNVector3(hitResult.worldTransform.columns.3.x,
+                                       hitResult.worldTransform.columns.3.y,
+                                       hitResult.worldTransform.columns.3.z
+                                       )
+        self.sceneView.scene.rootNode.addChildNode(textNode);
     }
     
     func registerGestureRecognizer(){
         let tapGestureRecognizer  = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        let doubleTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(doubleTapped))
+        doubleTapGestureRecognizer.numberOfTapsRequired = 2;
+        doubleTapGestureRecognizer.numberOfTouchesRequired = 1;
+        
+        self.sceneView.addGestureRecognizer(doubleTapGestureRecognizer);
         self.sceneView.addGestureRecognizer(tapGestureRecognizer);
+    }
+    
+    @objc func doubleTapped(recognizer: UITapGestureRecognizer){
+        self.visibleGrid = !self.visibleGrid
+        planes.forEach({ (_, plane) in
+            plane.setPlaneVisibility(self.visibleGrid)
+        })
     }
     
     @objc func tapped(recognizer: UITapGestureRecognizer){
@@ -137,8 +138,11 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             guard let hitResult = hitRTestRetsult.first else{
                 return
             }
+            addText(hitResult);
         }
     }
+    
+    
     
     
     

@@ -16,6 +16,8 @@ class Plane:SCNNode{
     var planeGeometry: SCNPlane
     var planeNode: SCNNode
     
+    
+    
     init(_ anchor: ARPlaneAnchor) {
         self.planeAnchor = anchor;
         let grid = UIImage(named: "grid");
@@ -43,6 +45,9 @@ class Plane:SCNNode{
         self.position = SCNVector3Make(anchor.center.x, -0.002, anchor.center.z)
     }
     
+    func setPlaneVisibility(_ visible: Bool) {
+        self.planeNode.isHidden = !visible
+    }
     
     
     
