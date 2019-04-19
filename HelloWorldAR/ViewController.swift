@@ -31,7 +31,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let scene = SCNScene()
         registerGestureRecognizer()
         // Set the scene to the view
-        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
+        //sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
         sceneView.scene = scene
     }
     
@@ -104,8 +104,101 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         return textNode;
     }
     
+    func createNervousTextNode (string: String) -> SCNNode {
+        var curPosition = SCNVector3Zero;
+        let textNode = SCNNode()
+        for charIndex in string.indices{
+            let text = SCNText(string: "\(string[charIndex])", extrusionDepth: 0.1)
+            text.font = UIFont.systemFont(ofSize: 1.0)
+            text.flatness = 0.01
+            
+            let material = SCNMaterial()
+            let color = UIColor(red: CGFloat(arc4random_uniform(256)) / 255,
+                                green: CGFloat(arc4random_uniform(256)) / 255,
+                                blue: CGFloat(arc4random_uniform(256)) / 255,
+                                alpha: 1)
+            material.diffuse.contents = color
+            material.emission.contents = color
+            text.materials = [material]
+            let charNode = SCNNode(geometry: text)
+            charNode.castsShadow = true
+            
+            let fontSize = Float(0.15)
+            charNode.scale = SCNVector3(fontSize, fontSize, fontSize)
+            
+            var minVec = SCNVector3Zero
+            var maxVec = SCNVector3Zero
+            (minVec, maxVec) =  charNode.boundingBox
+            charNode.pivot = SCNMatrix4MakeTranslation(
+                minVec.x + (maxVec.x - minVec.x)/2,
+                minVec.y,
+                minVec.z + (maxVec.z - minVec.z)/2
+            )
+            
+            charNode.position = curPosition
+            curPosition.x = curPosition.x + 0.09
+            makeNervous(charNode: charNode);
+            textNode.addChildNode(charNode)
+        }
+        return textNode
+    }
+    
+
+    func getRandom(lower: Float = 0, _ upper: Float = 100) -> Float {
+        let ans = (Float(arc4random()) / 0xFFFFFFFF) * (upper - lower) + lower;
+        return ans;
+    }
+    
+    func makeNervous(charNode: SCNNode) {
+        let xDiff = CGFloat( getRandom(lower: (-Float.pi/50),(Float.pi/50)) )
+        let yDiff = CGFloat(getRandom(lower: (-Float.pi/50),(Float.pi/50)))
+        let zDiff = CGFloat(0.0)
+        let color = UIColor(red: CGFloat(arc4random_uniform(256)) / 255,
+                            green: CGFloat(arc4random_uniform(256)) / 255,
+                            blue: CGFloat(arc4random_uniform(256)) / 255,
+                            alpha: 1)
+        
+        let action = SCNAction.moveBy(x: xDiff,
+                                      y: yDiff,
+                                      z: zDiff, duration: 0.1)
+        
+        
+        let material  = SCNMaterial()
+        material.diffuse.contents = color
+        
+        charNode.geometry?.materials = [material]
+        let backwards = action.reversed()
+        
+        let removeAction = SCNAction.run { (node) in
+            self.makeNervous(charNode: node)
+        }
+        let actionSequence = SCNAction.sequence([action, backwards, removeAction])
+        charNode.runAction(actionSequence)
+    }
+    
+    func regRandom(range: Range<Float> ) -> Float {
+        var offset:Float = 0.0
+        if range.lowerBound < 0   // allow negative ranges
+        {
+            offset = abs(range.lowerBound)
+        }
+        let mini = UInt32(range.lowerBound   + offset)
+        let maxi = UInt32(range.upperBound   + offset)
+        print("mini=\(mini)")
+        print("maxi=\(maxi)")
+        let ran = Float(mini + arc4random_uniform(maxi - mini)) - offset
+        print(ran)
+        return ran
+    }
+    
+    
+    
+    
+    
+    
+    
     func addText(_ hitResult: ARHitTestResult){
-        let textNode = createTextNode(string: "Dumela  Lefatshe");
+        let textNode = createNervousTextNode(string: "Dumela  Lefatshe");
         textNode.position = SCNVector3(hitResult.worldTransform.columns.3.x,
                                        hitResult.worldTransform.columns.3.y,
                                        hitResult.worldTransform.columns.3.z
